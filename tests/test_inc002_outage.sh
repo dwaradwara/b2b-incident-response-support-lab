@@ -148,7 +148,7 @@ echo "PASS: session-provider healthy"
 
 echo "7. Validating recovery..."
 
-for i in {1..5}; do
+for i in {1..10}; do
   status="$(
     curl -sS \
       -o /dev/null \
@@ -162,7 +162,7 @@ for i in {1..5}; do
   test "$status" = "200"
 done
 
-echo "PASS: 5/5 recovery requests returned HTTP 200"
+echo "PASS: 10/10 recovery requests returned HTTP 200"
 
 
 trap - EXIT

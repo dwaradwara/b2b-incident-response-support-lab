@@ -268,38 +268,6 @@ This repository is a local support-engineering simulation rather than a producti
 
 ![INC001 DevTools 401 investigation](docs/evidence/inc001-devtools-401.png)
 
-Chrome DevTools was used to reproduce the HTTP 401 failure, inspect the request/response and correlate the request ID with backend application logs.
-
-### INC002 - Critical Upstream Dependency Outage
-
-![INC002 Prometheus alert](docs/evidence/inc002-prometheus-firing.png)
-
-Prometheus detected repeated HTTP 503 responses and placed `HighAPI5xxRate` into the FIRING state while the dedicated session-provider dependency was unavailable.
-
-### INC003 - Back-Office Integration Failure
-
-![INC003 back-office failure](docs/evidence/inc003-backoffice-403.png)
-
-The provider configuration was inspected through the local administrative back office and independently validated in PostgreSQL.
-
-### INC003 - Recovery
-
-![INC003 recovered integration](docs/evidence/inc003-backoffice-recovered.png)
-
-After restoring the provider callback configuration, the provider-session workflow returned HTTP 200.
-
-### Automated INC002 Fault Injection
-
-![INC002 automated outage validation](docs/evidence/inc002-automated-outage-test.png)
-
-The automated integration test stops the real upstream dependency, verifies HTTP 503 responses and application log evidence, confirms the Prometheus alert enters FIRING state, restores the dependency and validates successful HTTP 200 recovery.
-
-## Investigation Evidence
-
-### INC001 - Browser DevTools Authentication Investigation
-
-![INC001 DevTools 401 investigation](docs/evidence/inc001-devtools-401.png)
-
 Chrome DevTools was used to reproduce the HTTP 401 failure, inspect the request and response, and correlate the request ID with backend application logs.
 
 ### INC002 - Critical Upstream Dependency Outage
