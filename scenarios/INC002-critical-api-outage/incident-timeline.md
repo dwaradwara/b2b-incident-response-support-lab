@@ -8,40 +8,47 @@ Session Creation Service Unavailable
 
 SEV-1 - Critical
 
-## Timeline - UTC
+## Timeline - Relative
 
-### 15:04:49
-Prometheus `HighAPI5xxRate` alert entered FIRING state.
+### T+0m - Detection
 
-Alert evidence:
+Prometheus `HighAPI5xxRate` entered the FIRING state after repeated failures on:
 
-- Endpoint: `POST /api/v1/session`
-- HTTP status: `503`
+`POST /api/v1/session`
+
+Observed:
+
+- HTTP status: `503 Service Unavailable`
 - Severity: `critical`
+- Customer workflow impact: session creation unavailable
 
-### 15:05
+### T+1m - Customer Impact Validation
+
 L1 reproduced the failure repeatedly.
 
 Validation:
 
-- 12 consecutive requests tested
-- 12 returned HTTP 503
+- 8 consecutive requests tested
+- 8 returned HTTP 503
 - Failure rate during validation: 100%
 
-### 15:05
-Infrastructure health checked.
+### T+2m - Infrastructure Isolation
 
-- API container: running
-- PostgreSQL container: healthy
-- Nginx container: running
-- Prometheus container: running
+Infrastructure health was checked.
 
-The issue was therefore isolated to the session workflow rather than a complete infrastructure outage.
+- Main FastAPI API: running
+- PostgreSQL: healthy
+- Nginx: running
+- Prometheus: running
+- `session-provider`: unavailable
 
-### 15:05
-Application logs reviewed.
+The incident was isolated to the upstream session-provider dependency rather than a complete platform outage.
 
-Observed:
+### T+3m - Log Correlation
+
+Application logs were reviewed.
+
+Observed event:
 
 `session_creation_failed`
 
@@ -49,28 +56,34 @@ Reason:
 
 `upstream_connection_failure`
 
+Upstream:
+
+`http://session-provider:9000/session`
+
 Severity:
 
 `critical`
 
-### 15:05
-Incident classified as SEV-1 and prepared for L2/L3 engineering escalation.
+The HTTP 503 response request ID was correlated with the backend failure log.
 
-### Recovery Validation
+### T+4m - Escalation
 
-Remediation was applied to the affected session workflow.
+The incident was classified as SEV-1 and prepared for L2/L3 engineering escalation.
 
-At `2026-10-08 15:09:12 UTC`, L1 completed recovery validation.
+### Recovery
 
-Validation results:
+The stopped `session-provider` container was restored and allowed to return to a healthy state.
+
+No restart of the main API, Nginx, PostgreSQL or Prometheus was required.
+
+Recovery validation:
 
 - 10 consecutive session requests tested
 - 10 returned HTTP 200
-- API health: OK
-- Database health: connected
+- Upstream session IDs were returned
+- Main API health remained OK
+- Database remained connected
 
-After the monitoring window cleared, Prometheus returned:
-
-`alerts: []`
+After the monitoring window cleared, `HighAPI5xxRate` returned to an inactive state.
 
 The incident was then eligible for resolution.

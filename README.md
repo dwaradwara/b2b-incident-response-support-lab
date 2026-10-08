@@ -236,13 +236,25 @@ Do not use `docker compose down -v` if you want to retain PostgreSQL data.
 
 ## Automated Tests
 
-The integration test suite validates:
+The pytest integration suite contains five application/support workflow tests covering:
 
 - service/database health
 - invalid authentication handling
 - successful authentication
 - provider configuration failure and recovery
 - customer frontend and administrative back-office availability
+
+A dedicated shell-based fault-injection test, `tests/test_inc002_outage.sh`, validates the real upstream outage path:
+
+- verifies a healthy baseline
+- stops the `session-provider` dependency
+- confirms 8/8 customer requests return HTTP 503
+- confirms `upstream_connection_failure` appears in application logs
+- confirms Prometheus `HighAPI5xxRate` enters FIRING state
+- restores the dependency and waits for it to become healthy
+- confirms 10/10 recovery requests return HTTP 200
+
+GitHub Actions runs both the pytest suite and the INC002 fault-injection test on pushes and pull requests.
 
 ## Security
 
@@ -276,9 +288,13 @@ Chrome DevTools was used to reproduce the HTTP 401 failure, inspect the request 
 
 Prometheus detected repeated HTTP 503 responses and placed `HighAPI5xxRate` into the FIRING state while the dedicated session-provider dependency was unavailable.
 
-![INC002 automated outage validation](docs/evidence/inc002-automated-outage-test.png)
+![INC002 HTTP 503 and correlated backend log](docs/evidence/inc002-503-upstream-log.png)
 
-The automated integration test stops the real upstream dependency, verifies HTTP 503 responses and application log evidence, confirms the Prometheus alert enters FIRING state, restores the dependency, and validates HTTP 200 recovery.
+The customer-facing request returned HTTP 503 while the correlated API log recorded `session_creation_failed` with reason `upstream_connection_failure` against the `session-provider` dependency.
+
+![INC002 recovery validation](docs/evidence/inc002-recovery-200.png)
+
+After the upstream dependency was restored and healthy, the customer session workflow returned HTTP 200 with an upstream session ID. The automated fault-injection test additionally verifies 10/10 successful recovery requests in CI.
 
 ### INC003 - Back-Office Integration Failure
 

@@ -6,15 +6,15 @@ SEV-1 - Critical
 
 ## Impact
 
-Session creation is unavailable.
+Customer session creation is unavailable.
 
 During L1 validation:
 
-- Requests tested: 12
+- Requests tested: 8
 - Successful requests: 0
-- Failed requests: 12
+- Failed requests: 8
 - Failure rate: 100%
-- HTTP response: 503 Service Unavailable
+- HTTP response: `503 Service Unavailable`
 
 ## Affected Endpoint
 
@@ -34,20 +34,22 @@ Severity:
 
 `critical`
 
-Alert active from:
-
-`2026-10-08 15:04:49 UTC`
+The alert entered FIRING state during the fault-injection window while repeated HTTP 503 responses were being generated.
 
 ## Infrastructure Validation
 
 The following services remained operational:
 
 - Nginx
-- FastAPI process
+- Main FastAPI API
 - PostgreSQL
 - Prometheus
 
-Database health check remained healthy.
+The following dependency was unavailable:
+
+- `session-provider`
+
+Database health remained healthy.
 
 ## Application Evidence
 
@@ -59,27 +61,31 @@ Reason:
 
 `upstream_connection_failure`
 
-Example request ID:
+Upstream:
 
-`12c7aae0a5e204092d999bca3c96c2d9`
+`http://session-provider:9000/session`
 
 HTTP status:
 
 `503`
 
+The customer-facing response request ID was correlated with the backend failure log. Evidence is captured in:
+
+`docs/evidence/inc002-503-upstream-log.png`
+
 ## L1 Actions
 
 1. Reproduced the customer-impacting failure.
-2. Confirmed repeated HTTP 503 responses.
-3. Verified platform container health.
-4. Verified PostgreSQL health.
-5. Reviewed application logs.
-6. Correlated failures with monitoring.
-7. Confirmed critical Prometheus alert.
-8. Avoided unnecessary service restarts.
+2. Confirmed 8/8 HTTP 503 responses.
+3. Verified main API, Nginx, PostgreSQL and Prometheus health.
+4. Isolated the unavailable `session-provider` dependency.
+5. Reviewed application logs and identified `upstream_connection_failure`.
+6. Correlated customer request evidence with backend logs.
+7. Confirmed the critical Prometheus alert.
+8. Avoided unnecessary restarts of healthy services.
 
 ## Engineering Request
 
-Investigate the upstream dependency/configuration responsible for session creation failures and provide a safe recovery action.
+Investigate and restore the unavailable `session-provider` dependency.
 
-L1 will validate session creation and monitoring state after remediation.
+After restoration, L1 will verify dependency health, validate session creation with repeated HTTP 200 responses and confirm monitoring recovery.
