@@ -278,13 +278,13 @@ This repository is a local support-engineering simulation rather than a producti
 
 ### INC001 - Browser DevTools Authentication Investigation
 
-![INC001 DevTools 401 investigation](docs/evidence/inc001-devtools-401.png)
+![INC001 DevTools 401 investigation](docs/evidence/inc001-devtools-401-cropped.svg)
 
 Chrome DevTools was used to reproduce the HTTP 401 failure, inspect the request and response, and correlate the request ID with backend application logs.
 
 ### INC002 - Critical Upstream Dependency Outage
 
-![INC002 Prometheus alert](docs/evidence/inc002-prometheus-firing.png)
+![INC002 Prometheus alert](docs/evidence/inc002-prometheus-firing-cropped.svg)
 
 Prometheus detected repeated HTTP 503 responses and placed `HighAPI5xxRate` into the FIRING state while the dedicated session-provider dependency was unavailable.
 
@@ -298,10 +298,10 @@ After the upstream dependency was restored and healthy, the customer session wor
 
 ### INC003 - Back-Office Integration Failure
 
-![INC003 back-office failure](docs/evidence/inc003-backoffice-403.png)
+![INC003 back-office failure](docs/evidence/inc003-backoffice-403-cropped.svg)
 
 The provider configuration was inspected through the local administrative back office. With the provider callback disabled, the provider-session workflow returned HTTP 403.
 
-![INC003 recovered integration](docs/evidence/inc003-backoffice-recovered.png)
+![INC003 recovered integration](docs/evidence/inc003-backoffice-recovered-cropped.svg)
 
 After restoring the provider callback configuration, the provider-session workflow returned HTTP 200 successfully.
