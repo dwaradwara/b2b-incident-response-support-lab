@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acme Gaming Support Demo</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 760px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background: #f5f7fa;
+    }
+
+    .card {
+      background: white;
+      padding: 28px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    button {
+      padding: 10px 16px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    pre {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 18px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    .error {
+      color: #b91c1c;
+    }
+
+    .success {
+      color: #047857;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>Acme Gaming Account Portal</h1>
+
+  <p>
+    Technical support reproduction page for API authentication incidents.
+  </p>
+
+  <button onclick="loadAccount('expired-demo-token')">
+    Load Account - Expired Token
+  </button>
+
+  <button onclick="loadAccount('valid-demo-token')">
+    Load Account - Valid Token
+  </button>
+
+  <h3 id="status">Status: Waiting</h3>
+
+  <pre id="output">No request sent yet.</pre>
+
+</div>
+
+<script>
+
+async function loadAccount(token) {
+
+  const status = document.getElementById("status");
+  const output = document.getElementById("output");
+
+  status.textContent = "Status: Requesting...";
+  status.className = "";
+
+  try {
+
+    const response = await fetch("/api/v1/account", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    const body = await response.json();
+
+    const requestId =
+      response.headers.get("X-Request-ID");
+
+    if (!response.ok) {
+      status.textContent =
+        `Status: ${response.status} ${response.statusText}`;
+      status.className = "error";
+    } else {
+      status.textContent =
+        `Status: ${response.status} ${response.statusText}`;
+      status.className = "success";
+    }
+
+    output.textContent = JSON.stringify(
+      {
+        http_status: response.status,
+        request_id_header: requestId,
+        response_body: body
+      },
+      null,
+      2
+    );
+
+  } catch (error) {
+
+    status.textContent = "Status: Request failed";
+    status.className = "error";
+
+    output.textContent = String(error);
+  }
+}
+
+</script>
+
+</body>
+</html>

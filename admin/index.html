@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Back Office</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      max-width: 850px;
+      margin: 50px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 28px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    pre {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 18px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>Provider Integration Back Office</h1>
+
+  <p>
+    Provider: Demo Gaming Provider
+  </p>
+
+  <button onclick="loadConfig()">
+    Refresh Configuration
+  </button>
+
+  <button onclick="setCallback(false)">
+    Disable Callback
+  </button>
+
+  <button onclick="setCallback(true)">
+    Enable Callback
+  </button>
+
+  <button onclick="testSession()">
+    Test Provider Session
+  </button>
+
+  <h3>Current State</h3>
+
+  <pre id="output">Loading...</pre>
+
+</div>
+
+<script>
+
+const providerId = "provider_demo_001";
+
+async function loadConfig() {
+  const response = await fetch(
+    `/api/v1/admin/providers/${providerId}`
+  );
+
+  const body = await response.json();
+
+  document.getElementById("output").textContent =
+    JSON.stringify(body, null, 2);
+}
+
+async function setCallback(enabled) {
+  const response = await fetch(
+    `/api/v1/admin/providers/${providerId}/callback`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        enabled: enabled
+      })
+    }
+  );
+
+  const body = await response.json();
+
+  document.getElementById("output").textContent =
+    JSON.stringify(body, null, 2);
+}
+
+async function testSession() {
+  const response = await fetch(
+    "/api/v1/provider/session",
+    {
+      method: "POST"
+    }
+  );
+
+  const body = await response.json();
+
+  document.getElementById("output").textContent =
+    JSON.stringify(
+      {
+        http_status: response.status,
+        request_id:
+          response.headers.get("X-Request-ID"),
+        response: body
+      },
+      null,
+      2
+    );
+}
+
+loadConfig();
+
+</script>
+
+</body>
+</html>

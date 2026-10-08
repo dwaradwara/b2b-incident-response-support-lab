@@ -1,0 +1,14 @@
+groups:
+  - name: incident-support-alerts
+
+    rules:
+      - alert: HighAPI5xxRate
+        expr: increase(incident_lab_http_requests_total{status=~"5.."}[1m]) >= 5
+        for: 0m
+
+        labels:
+          severity: critical
+
+        annotations:
+          summary: "Elevated API 5xx responses"
+          description: "At least 5 server errors were detected during the last minute."
