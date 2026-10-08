@@ -34,9 +34,9 @@ The lab models support workflows found in high-availability SaaS and digital pla
            |
            v
       FastAPI API
-           |
-           v
-      PostgreSQL
+       /       \
+      v         v
+PostgreSQL   Session Provider
 
            +
       Prometheus
@@ -74,26 +74,33 @@ A valid token returned HTTP 200 and restored account access.
 
 This scenario demonstrates Browser DevTools investigation, API troubleshooting, log correlation, and L1 resolution.
 
-## INC002 - Critical API Outage
+## INC002 - Critical Upstream Dependency Outage
 
-Prometheus detected elevated 5xx responses from:
+The main API depends on a separate `session-provider` service over HTTP.
 
-`POST /api/v1/session`
+Healthy request flow:
+
+    Client
+      |
+      v
+    Nginx
+      |
+      v
+    Main FastAPI API
+      |
+      v
+    Session Provider
+
+During the incident, the `session-provider` container was stopped to simulate a real dependency outage.
 
 Observed impact:
 
-- 12 consecutive requests failed
-- Failure rate: 100%
-- HTTP response: 503
+- customer-facing `POST /api/v1/session` returned HTTP 503
+- main API remained running
+- PostgreSQL remained healthy
+- Nginx remained operational
+- Prometheus detected elevated 5xx responses
 - `HighAPI5xxRate` entered FIRING state
-- Severity classified as SEV-1
-
-L1 verified:
-
-- Nginx operational
-- FastAPI process operational
-- PostgreSQL healthy
-- Prometheus operational
 
 Application logs reported:
 
@@ -101,19 +108,21 @@ Application logs reported:
 
 Reason:
 
-`upstream_service_unavailable`
+`upstream_connection_failure`
 
 The incident workflow included:
 
 - SEV-1 classification
-- incident timeline
-- client status communication
-- L2/L3 escalation
-- remediation
+- impact validation
+- Prometheus alert investigation
+- structured L2/L3 escalation
+- four-stage simulated customer communication
+- upstream dependency restoration
 - 10 consecutive HTTP 200 recovery checks
-- health validation
 - monitoring recovery
 - postmortem
+
+This scenario uses an actual separate upstream HTTP service rather than an application flag.
 
 ## INC003 - Back-Office Integration Failure
 
@@ -241,3 +250,74 @@ The integration test suite validates:
 - Credentials committed to the repository are placeholders only.
 - No real customer data is used.
 - This repository is an engineering/support simulation and not a production platform.
+
+## Lab Security Boundaries
+
+This repository is a local support-engineering simulation rather than a production application.
+
+- Nginx is bound to `127.0.0.1:8088`.
+- Prometheus is bound to `127.0.0.1:9090`.
+- The administrative back office intentionally has no production authentication layer and is accessible only through the local lab interface.
+- Prometheus metrics are scraped internally from the API container and are not proxied through the public Nginx route.
+- Demo credentials and customer/provider names are synthetic.
+- Production deployments would require authentication, authorization, TLS, secret management, network access controls and audit logging.
+
+## Investigation Evidence
+
+### INC001 - Browser DevTools Authentication Investigation
+
+![INC001 DevTools 401 investigation](docs/evidence/inc001-devtools-401.png)
+
+Chrome DevTools was used to reproduce the HTTP 401 failure, inspect the request/response and correlate the request ID with backend application logs.
+
+### INC002 - Critical Upstream Dependency Outage
+
+![INC002 Prometheus alert](docs/evidence/inc002-prometheus-firing.png)
+
+Prometheus detected repeated HTTP 503 responses and placed `HighAPI5xxRate` into the FIRING state while the dedicated session-provider dependency was unavailable.
+
+### INC003 - Back-Office Integration Failure
+
+![INC003 back-office failure](docs/evidence/inc003-backoffice-403.png)
+
+The provider configuration was inspected through the local administrative back office and independently validated in PostgreSQL.
+
+### INC003 - Recovery
+
+![INC003 recovered integration](docs/evidence/inc003-backoffice-recovered.png)
+
+After restoring the provider callback configuration, the provider-session workflow returned HTTP 200.
+
+### Automated INC002 Fault Injection
+
+![INC002 automated outage validation](docs/evidence/inc002-automated-outage-test.png)
+
+The automated integration test stops the real upstream dependency, verifies HTTP 503 responses and application log evidence, confirms the Prometheus alert enters FIRING state, restores the dependency and validates successful HTTP 200 recovery.
+
+## Investigation Evidence
+
+### INC001 - Browser DevTools Authentication Investigation
+
+![INC001 DevTools 401 investigation](docs/evidence/inc001-devtools-401.png)
+
+Chrome DevTools was used to reproduce the HTTP 401 failure, inspect the request and response, and correlate the request ID with backend application logs.
+
+### INC002 - Critical Upstream Dependency Outage
+
+![INC002 Prometheus alert](docs/evidence/inc002-prometheus-firing.png)
+
+Prometheus detected repeated HTTP 503 responses and placed `HighAPI5xxRate` into the FIRING state while the dedicated session-provider dependency was unavailable.
+
+![INC002 automated outage validation](docs/evidence/inc002-automated-outage-test.png)
+
+The automated integration test stops the real upstream dependency, verifies HTTP 503 responses and application log evidence, confirms the Prometheus alert enters FIRING state, restores the dependency, and validates HTTP 200 recovery.
+
+### INC003 - Back-Office Integration Failure
+
+![INC003 back-office failure](docs/evidence/inc003-backoffice-403.png)
+
+The provider configuration was inspected through the local administrative back office. With the provider callback disabled, the provider-session workflow returned HTTP 403.
+
+![INC003 recovered integration](docs/evidence/inc003-backoffice-recovered.png)
+
+After restoring the provider callback configuration, the provider-session workflow returned HTTP 200 successfully.

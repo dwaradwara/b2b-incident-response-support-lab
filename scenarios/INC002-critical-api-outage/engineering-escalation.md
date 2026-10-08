@@ -57,7 +57,7 @@ Application logs contain:
 
 Reason:
 
-`upstream_service_unavailable`
+`upstream_connection_failure`
 
 Example request ID:
 

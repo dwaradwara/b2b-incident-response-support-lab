@@ -62,6 +62,9 @@ jobs:
       - name: Run automated tests
         run: python -m pytest -q tests
 
+      - name: Test real upstream outage and recovery
+        run: ./tests/test_inc002_outage.sh
+
       - name: Show logs on failure
         if: failure()
         run: |

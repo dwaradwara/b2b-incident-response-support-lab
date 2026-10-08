@@ -4,6 +4,7 @@ import os
 import time
 import uuid
 
+import httpx
 import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -30,6 +31,11 @@ DATABASE_URL = os.getenv(
 VALID_ACCESS_TOKEN = os.getenv(
     "VALID_ACCESS_TOKEN",
     "valid-demo-token",
+)
+
+UPSTREAM_SESSION_URL = os.getenv(
+    "UPSTREAM_SESSION_URL",
+    "http://session-provider:9000/session",
 )
 
 REQUEST_COUNT = Counter(
@@ -155,27 +161,28 @@ def account(
 
 @app.post("/api/v1/session")
 def create_session(request: Request):
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT enabled
-                FROM incident_flags
-                WHERE flag_name = 'api_outage'
-                """
-            )
+    try:
+        response = httpx.post(
+            UPSTREAM_SESSION_URL,
+            headers={
+                "X-Request-ID": request.state.request_id,
+            },
+            timeout=2.0,
+        )
 
-            row = cur.fetchone()
+        response.raise_for_status()
 
-    outage_enabled = bool(row and row[0])
+        upstream = response.json()
 
-    if outage_enabled:
+    except httpx.RequestError as exc:
         logger.error(
             json.dumps(
                 {
                     "request_id": request.state.request_id,
                     "event": "session_creation_failed",
-                    "reason": "upstream_service_unavailable",
+                    "reason": "upstream_connection_failure",
+                    "upstream": UPSTREAM_SESSION_URL,
+                    "error_type": type(exc).__name__,
                     "severity": "critical",
                 }
             )
@@ -185,7 +192,29 @@ def create_session(request: Request):
             status_code=503,
             content={
                 "error": "service_unavailable",
-                "message": "Session service temporarily unavailable",
+                "message": "Session provider is unavailable",
+                "request_id": request.state.request_id,
+            },
+        )
+
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            json.dumps(
+                {
+                    "request_id": request.state.request_id,
+                    "event": "session_creation_failed",
+                    "reason": "upstream_http_error",
+                    "upstream_status": exc.response.status_code,
+                    "severity": "critical",
+                }
+            )
+        )
+
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "service_unavailable",
+                "message": "Session provider returned an error",
                 "request_id": request.state.request_id,
             },
         )
@@ -193,6 +222,7 @@ def create_session(request: Request):
     return {
         "session_id": f"sess_{uuid.uuid4().hex[:10]}",
         "status": "created",
+        "upstream_session_id": upstream["provider_session_id"],
         "request_id": request.state.request_id,
     }
 

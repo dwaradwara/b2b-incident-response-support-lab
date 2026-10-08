@@ -2,7 +2,7 @@
 
 ## Incident
 
-Session Creation Service Unavailable
+Session Provider Dependency Unavailable
 
 ## Severity
 
@@ -10,7 +10,7 @@ SEV-1 - Critical
 
 ## Impact
 
-The session creation endpoint returned HTTP 503 for all tested requests during the incident.
+The customer-facing session endpoint returned HTTP 503 because the main API could not connect to its upstream session-provider dependency.
 
 Affected endpoint:
 
@@ -18,48 +18,55 @@ Affected endpoint:
 
 ## Root Cause
 
-The session workflow reported:
+The dedicated `session-provider` service became unavailable.
 
-`upstream_service_unavailable`
+The main FastAPI service remained running, but its HTTP request to:
 
-The application process, reverse proxy, PostgreSQL database, and monitoring services remained operational.
+`http://session-provider:9000/session`
 
-The failure was therefore isolated to the session workflow/upstream dependency rather than a complete platform outage.
+failed with an upstream connection error.
+
+Application logs recorded:
+
+`session_creation_failed`
+
+Reason:
+
+`upstream_connection_failure`
+
+## Infrastructure State
+
+During the incident:
+
+- Nginx remained operational
+- Main FastAPI service remained operational
+- PostgreSQL remained healthy
+- Prometheus remained operational
+- `session-provider` was unavailable
 
 ## Recovery
 
-The affected upstream condition was cleared.
+The upstream session-provider service was restored.
+
+No restart of the main API, Nginx, PostgreSQL, or Prometheus was required.
 
 ## Validation
 
-L1 performed post-remediation validation.
+After the upstream dependency returned to a healthy state:
 
-Results:
-
-- 10 consecutive requests
-- 10 successful responses
-- HTTP status: 200
-- API health: OK
-- Database: connected
-
-Recovery validated at:
-
-`2026-10-08 15:09:12 UTC`
+- 10 consecutive session requests were tested
+- 10 returned HTTP 200
+- upstream session IDs were returned successfully
+- main API remained healthy
 
 ## Monitoring
 
-Prometheus initially reported:
+Prometheus detected the 503 burst using:
 
 `HighAPI5xxRate`
 
-State:
-
-`FIRING`
-
-After recovery and the monitoring window cleared:
-
-`alerts: []`
+After successful recovery and the monitoring window cleared, the alert returned to inactive.
 
 ## Result
 
-Normal session creation was restored and monitoring returned to normal.
+The customer-facing session workflow returned to normal operation.

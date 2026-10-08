@@ -1,14 +1,3 @@
-CREATE TABLE IF NOT EXISTS incident_flags (
-    flag_name TEXT PRIMARY KEY,
-    enabled BOOLEAN NOT NULL DEFAULT FALSE,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-INSERT INTO incident_flags (flag_name, enabled)
-VALUES
-    ('api_outage', FALSE)
-ON CONFLICT (flag_name) DO NOTHING;
-
 CREATE TABLE IF NOT EXISTS provider_config (
     provider_id TEXT PRIMARY KEY,
     provider_name TEXT NOT NULL,
